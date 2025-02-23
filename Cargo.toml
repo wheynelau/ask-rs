@@ -2,6 +2,7 @@
 name = "ask"
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/wheynelau/ask-rs.git"
 
 [dependencies]
 clap = { version = "4.5.30", features = ["derive"] }
