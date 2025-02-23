@@ -21,9 +21,18 @@ $ ask what is the capital of France
 
 ## Installation
 
+Download the release from the tags with your distribution.  
+
+```bash
+wget <link to release.tar.gz>
+tar -xvf release.tar.gz
+# move the binary to your path
+cp ask*/ask $HOME/.local/bin
 ```
-testing
-```
+
+Windows instructions:
+
+In progress
 
 ### From source
 
@@ -43,4 +52,5 @@ cargo install --path . --root $HOME/.local
 
 ## Issues
 
-- Having some issues cross compiling for aarch64 linux on cargo-dist.
+- Larger binaries due to the vendored openssl I suppose.  
+- Compilation from source is slow due to the need for openssl in cross compiling. 
