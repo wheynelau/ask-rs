@@ -14,9 +14,8 @@ $ ask what is the capital of France
 
 ## Installation
 
-```bash
-wget <your distribution> from releases
-tar -xvf ask-<your distribution>.tar.gz
+```
+testing
 ```
 
 ### From source
@@ -34,3 +33,7 @@ cargo install --path . --root $HOME/.local
 - This is a toy project, it's not meant to be used in production.
 - It does not handle some special characters well, like `?`.
 - It uses the openai API, but gemini flash works great and is free.
+
+## Issues
+
+- Having some issues cross compiling for aarch64 linux on cargo-dist.

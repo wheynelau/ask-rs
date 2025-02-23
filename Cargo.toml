@@ -15,3 +15,6 @@ serde_json = "1.0.139"
 [profile.dist]
 inherits = "release"
 lto = "thin"
+
+[dist]
+allow-dirty = ["ci", "msi"]
