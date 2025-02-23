@@ -16,4 +16,6 @@ $ ask what is the capital of France
 - Cargo
 
 ```bash
-cargo install --git 
+cargo install --git https://github.com/wheynelau/ask-rs.git
+```
+
