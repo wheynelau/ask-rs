@@ -1,4 +1,4 @@
-// This rs file is meant to serialize and deserialize configurations
+// This module handles the configuration
 use serde::{Deserialize, Serialize};
 use cliclack::{confirm, input, intro, outro};
 use std::env;
@@ -18,9 +18,9 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Config {
-            base_url: "https://api.openai.com/v1/".to_string(),
+            base_url: "https://generativelanguage.googleapis.com/v1beta/openai/".to_string(),
             legacy_completions: false,
-            model: "gpt-4o-mini".to_string(),
+            model: "gemini-2.0-flash".to_string(),
             system_prompt: "You are a helpful assistant, answer concisely. The user will be asking questions via a terminal, so keep the answers brief.".to_string(),
             system_role: "system".to_string(),
         }
@@ -105,7 +105,7 @@ pub fn configure () -> Result<(), Box<dyn std::error::Error>> {
         .interact()?;
         
     // Allow skipping because I cannot figure out if all endpoints have the models endpoint
-    let skip_validate: bool = confirm("Do you want to skip model validation? ")
+    let skip_validate: bool = confirm("Do you want to skip model validation? This defaults to true due to the different formats of the models endpoint.")
         .initial_value(true)
         .interact()?;
 

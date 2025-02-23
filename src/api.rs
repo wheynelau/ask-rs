@@ -72,6 +72,11 @@ pub fn chat(prompt: String) -> Result<(), Box<dyn std::error::Error>> {
         .json(&serde_json::json!(body))
         .send()?;
 
+    // Check response code of the API
+    if !response.status().is_success() {
+        return Err(format!("API returned an error: {:#?}", response).into());
+    }
+
     // If the DEBUG environment variable is set, print the response
     if let Ok(debug) = env::var("DEBUG") {
         if debug == "1" || debug == "true" {

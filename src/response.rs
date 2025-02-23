@@ -54,7 +54,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_serde () {
+    fn test_serde_openai () {
         // sample taken from openai
         let json_response = r#"
             {
