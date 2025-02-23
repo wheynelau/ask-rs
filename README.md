@@ -7,7 +7,7 @@ It is additionally used for learning purposes.
 ## Quick Start
 
 1. Setup a key on gemini since it's free. https://deepmind.google/technologies/gemini/flash/
-2. export the key as an environment variable `export API_KEY=your_key`
+2. export the key as an environment variable `export API_KEY=your_key` or `setx API_KEY "your_key"` on windows
 3. Run `ask --configure` and accept the defaults.
 4. Ask a question `ask how do i use sudo tee`
 
@@ -26,15 +26,21 @@ Download the release from the tags with your distribution.
 ```bash
 wget <link to release.tar.gz>
 tar -xvf release.tar.gz
-# move the binary to your path
+# move the binary to a location that is on the $PATH, like $HOME/.local/bin for user installs
 cp ask*/ask $HOME/.local/bin
 ```
 
-Windows instructions:
+### Windows instructions:
 
-In progress
+1. Download the windows zip file
+2. Extract the file
+3. Copy `ask.exe` into somewhere in your PATH or add the location of this folder to your PATH
+
+Notes: You can set permanent changes to PATH with this cmd `setx PATH "%PATH%;%CD%"` 
 
 ### From source
+
+Requires cargo to be installed. 
 
 ```bash
 git clone
