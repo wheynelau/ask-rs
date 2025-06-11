@@ -1,5 +1,5 @@
 /// Helper structs for creating and parsing the response from the API
-/// 
+///
 /// Some notes: Response is always in the format Vec of Choices, where each choice has a delta
 /// The delta is a message, which has a role and content
 ///
@@ -19,7 +19,7 @@ pub struct Choice {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Message {
     pub role: Option<String>,
-    pub content: Option<String>
+    pub content: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -54,7 +54,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_serde_openai () {
+    fn test_serde_openai() {
         // sample taken from openai
         let json_response = r#"
             {
@@ -85,5 +85,4 @@ mod tests {
         let parsed: APIResponse = serde_json::from_str(json_response).unwrap();
         assert_eq!(parsed.data.len(), 3);
     }
-
 }

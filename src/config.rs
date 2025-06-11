@@ -1,6 +1,6 @@
 // This module handles the configuration
-use serde::{Deserialize, Serialize};
 use cliclack::{confirm, input, intro, outro};
+use serde::{Deserialize, Serialize};
 use std::env;
 use std::path::PathBuf;
 
@@ -60,20 +60,17 @@ pub fn get_askconfig_path() -> PathBuf {
     }
 }
 
-pub fn configure () -> Result<(), Box<dyn std::error::Error>> {
-
+pub async fn configure() -> Result<(), Box<dyn std::error::Error>> {
     intro("Welcome to the configuration mode")?;
 
     // check if there is a current configuration
     let config = if get_askconfig_path().exists() {
-            let config = Config::load()?;
-            println!("Here is the current configuration: {:?}", config);
-            config
-        }
-        else {
-            Config::default()
-        };
-    
+        let config = Config::load()?;
+        println!("Here is the current configuration: {:?}", config);
+        config
+    } else {
+        Config::default()
+    };
 
     let base_url: String = input("What is the base_url?")
         .default_input(&config.base_url)
@@ -82,15 +79,15 @@ pub fn configure () -> Result<(), Box<dyn std::error::Error>> {
                 Err("Base URL cannot be empty")
             } else if !input.starts_with("http") {
                 Err("Path should be a valid URL")
-            }
-            else {
+            } else {
                 Ok(())
             }
-        }).interact()?;
+        })
+        .interact()?;
 
     let model: String = input("What model do you want to use? Smaller models are recommended: ")
-       .default_input(&config.model)
-       .interact()?;
+        .default_input(&config.model)
+        .interact()?;
 
     let system_prompt: String = input("What is the system prompt? ")
         .default_input(&config.system_prompt)
@@ -103,7 +100,7 @@ pub fn configure () -> Result<(), Box<dyn std::error::Error>> {
     let legacy_completions: bool = confirm("Do you want to use legacy completions?")
         .initial_value(false)
         .interact()?;
-        
+
     // Allow skipping because I cannot figure out if all endpoints have the models endpoint
     let skip_validate: bool = confirm("Do you want to skip model validation? This defaults to true due to the different formats of the models endpoint.")
         .initial_value(true)
@@ -114,7 +111,7 @@ pub fn configure () -> Result<(), Box<dyn std::error::Error>> {
         // Validate the model
 
         let api_key = env::var("API_KEY")?;
-        api::check_models(&base_url, &api_key, &model)?;
+        api::check_models(&base_url, &api_key, &model).await?;
     }
 
     let config = Config {
@@ -129,7 +126,7 @@ pub fn configure () -> Result<(), Box<dyn std::error::Error>> {
 
     // Serialize the configuration to a file
     serde_json::to_writer(std::fs::File::create(&path)?, &config)?;
-    
+
     outro("Configuration complete")?;
     Ok(())
 }
