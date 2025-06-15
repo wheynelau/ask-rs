@@ -9,5 +9,5 @@ pub struct Cli {
     pub configure: bool,
 
     /// Input string (quoted)
-    pub input: String,
+    pub input: Option<String>,
 }

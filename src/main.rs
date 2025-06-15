@@ -4,8 +4,8 @@ use std::io::{self, Read};
 pub mod api;
 pub mod args;
 pub mod config;
-pub mod response;
 pub mod prompt;
+pub mod response;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -29,14 +29,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             None
         };
 
-        let user_question = args.input.clone();
+        let user_question = match args.input {
+            Some(input) => input,
+            None => {
+                eprintln!("Please enter your question.");
+                std::process::exit(1);
+            }
+        };
 
         let config: config::Config = config::Config::load()?;
 
         let prompt = prompt::format_prompt(
             &config.system_prompt,
             stdin_content.as_deref(),
-            &user_question
+            &user_question,
         );
 
         api::chat(prompt).await?;
