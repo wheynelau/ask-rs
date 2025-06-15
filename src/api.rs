@@ -56,7 +56,7 @@ pub async fn check_models(
 
 pub async fn chat(prompt: String) -> Result<(), Box<dyn std::error::Error>> {
     let config: config::Config = config::Config::load()?;
-    let api_key = env::var("API_KEY")?;
+    let api_key = env::var("ASK_API_KEY")?;
 
     let body = RequestBody::new(
         config.model,
@@ -150,7 +150,7 @@ mod tests {
     #[ignore = "requires real API key and network"]
     async fn test_check_models() {
         let base_url = "https://api.openai.com/v1/";
-        let api_key = env::var("API_KEY").expect("API_KEY not set");
+        let api_key = env::var("ASK_API_KEY").expect("ASK_API_KEY not set");
         let model = "gpt-3.5-turbo";
         assert!(check_models(base_url, &api_key, model).await.is_ok());
     }

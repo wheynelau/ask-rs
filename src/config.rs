@@ -110,7 +110,7 @@ pub async fn configure() -> Result<(), Box<dyn std::error::Error>> {
     if !skip_validate {
         // Validate the model
 
-        let api_key = env::var("API_KEY")?;
+        let api_key = env::var("ASK_API_KEY")?;
         api::check_models(&base_url, &api_key, &model).await?;
     }
 

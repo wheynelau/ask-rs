@@ -7,7 +7,7 @@ It is additionally used for learning purposes.
 ## Quick Start
 
 1. Setup a key on gemini since it's free. https://deepmind.google/technologies/gemini/flash/
-2. export the key as an environment variable `export API_KEY=your_key` or `setx API_KEY "your_key"` on windows
+2. export the key as an environment variable `export ASK_API_KEY=your_key` or `setx ASK_API_KEY "your_key"` on windows
 3. Run `ask --configure` and accept the defaults.
 4. Ask a question `ask how do i use sudo tee`
 
@@ -60,3 +60,7 @@ cargo install --path . --root $HOME/.local
 
 - Larger binaries due to the vendored openssl I suppose.  
 - Compilation from source is slow due to the need for openssl in cross compiling. 
+
+
+## TODO:
+- [ ] Add thinking support
