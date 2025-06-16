@@ -21,6 +21,5 @@ pub struct Cli {
     )]
     pub reasoning: ReasoningEffort,
 
-    /// Input string (quoted)
     pub input: Option<String>,
 }
