@@ -1,8 +1,12 @@
 use clap::Parser;
 use std::io::{self, Read};
 pub mod cli;
+pub mod config;
 pub mod models;
 pub mod services;
+
+use config::setup as config_setup;
+use config::setup::Config;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -10,10 +14,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if args.configure {
         // This is configuration mode
-        models::config::configure().await?;
+        config_setup::configure().await?;
     } else {
         // check if the configuration file exists
-        if !models::config::get_askconfig_path().exists() {
+        if !config_setup::get_askconfig_path().exists() {
             eprintln!("Configuration file does not exist. Please run the application in configuration mode first.");
             std::process::exit(1);
         }
@@ -34,7 +38,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         };
 
-        let config: models::config::Config = models::config::Config::load()?;
+        let config: Config = Config::load()?;
 
         let prompt = models::prompt::format_prompt(
             &config.system_prompt,

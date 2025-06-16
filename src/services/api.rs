@@ -1,12 +1,12 @@
 /// Handles the API calling
-use serde_json::{self, json};
+use serde_json::{self};
 use std::env;
 
 use futures_util::StreamExt;
 use reqwest::Client;
 use std::io::Write;
 
-use crate::models::config;
+use crate::config::setup as config;
 use crate::services::schema::{APIResponse, Message, ReasoningEffort, RequestBody, Response};
 
 fn check_exists(model: &str, models: &APIResponse) -> bool {
@@ -66,27 +66,16 @@ pub async fn chat(
     } else {
         config.model.clone()
     };
-    // hardcode for testing
 
-    let extra_body = json!({
-        "google": {
-            "thinking_config": {
-                "thinkingBudget" : 1024,
-                "include_thoughts": true
-            }
-        }
-    });
-
-    let body = RequestBody::new(
-        model,
-        vec![Message {
+    let body = RequestBody::builder()
+        .model(model)
+        .messages(vec![Message {
             role: Some("user".to_string()),
             content: Some(prompt),
-        }],
-        true,
-        None,
-        extra_body,
-    );
+        }])
+        .stream(true)
+        .reasoning_effort(reasoning)
+        .build()?;
 
     // dbg the body as a json string if the DEBUG environment variable is set
     if let Ok(debug) = env::var("DEBUG") {
@@ -195,5 +184,40 @@ mod tests {
         };
         let model = "gpt-3.5-turbo";
         assert!(!check_exists(model, &api_response));
+    }
+
+    #[test]
+    fn test_serde_openai() {
+        // sample taken from openai
+        let json_response = r#"
+            {
+                "object": "list",
+                "data": [
+                    {
+                    "id": "model-id-0",
+                    "object": "model",
+                    "created": 1686935002,
+                    "owned_by": "organization-owner"
+                    },
+                    {
+                    "id": "model-id-1",
+                    "object": "model",
+                    "created": 1686935002,
+                    "owned_by": "organization-owner"
+                    },
+                    {
+                    "id": "model-id-2",
+                    "object": "model",
+                    "created": 1686935002,
+                    "owned_by": "openai"
+                    }
+                ],
+                "object": "list"
+            }
+        "#;
+        // Since APIResponse and Model are now in src/services/schema, we need to import them for the test
+        use crate::services::schema::APIResponse; // Only APIResponse is directly used here
+        let parsed: APIResponse = serde_json::from_str(json_response).unwrap();
+        assert_eq!(parsed.data.len(), 3);
     }
 }
