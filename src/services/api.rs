@@ -3,7 +3,7 @@ use std::env;
 use reqwest::Client;
 
 use super::request::{ReasoningEffort, RequestBody};
-use super::schema::{APIResponse, Message};
+use super::schema::{APIResponse, Message, Usage};
 use super::stream::stream;
 use crate::cli::Cli;
 use crate::config::setup as config;
@@ -11,6 +11,18 @@ use crate::services::schema::NonStreamingResponse;
 
 fn check_exists(model: &str, models: &APIResponse) -> bool {
     models.data.iter().any(|m| m.id == model)
+}
+
+fn load_api_key() -> Result<String, Box<dyn std::error::Error>> {
+    env::var("ASK_API_KEY").map_err(|_| "ASK_API_KEY environment variable not set".into())
+}
+
+fn select_model(config: &config::Config, reasoning: &ReasoningEffort) -> String {
+    if *reasoning != ReasoningEffort::None {
+        config.thinking_model.clone()
+    } else {
+        config.model.clone()
+    }
 }
 
 fn create_endpoint(legacy_completions: &bool, base_url: &str) -> String {
@@ -26,6 +38,64 @@ fn create_endpoint(legacy_completions: &bool, base_url: &str) -> String {
     }
 }
 
+fn build_request_body(
+    model: String,
+    prompt: String,
+    stream: bool,
+    reasoning: ReasoningEffort,
+    verbose: bool,
+) -> Result<RequestBody, Box<dyn std::error::Error>> {
+    Ok(RequestBody::builder()
+        .model(model)
+        .messages(vec![Message {
+            role: Some("user".to_string()),
+            content: Some(prompt),
+        }])
+        .stream(stream)
+        .reasoning_effort(reasoning)
+        .show_reasoning(verbose)
+        .build()?)
+}
+async fn build_request(
+    config: &config::Config,
+    api_key: &str,
+    body: RequestBody,
+) -> Result<reqwest::Response, Box<dyn std::error::Error>> {
+    let client = Client::new();
+    let endpoint = create_endpoint(&config.legacy_completions, &config.base_url);
+    let response = client
+        .post(&endpoint)
+        .bearer_auth(api_key)
+        .header("Content-Type", "application/json")
+        .json(&serde_json::json!(body))
+        .send()
+        .await?;
+
+    // Check response code of the API
+    if !response.status().is_success() {
+        return Err(format!("API returned an error: {:#?}", response).into());
+    }
+    Ok(response)
+}
+
+async fn handle_response(
+    response: reqwest::Response,
+    stream_enabled: bool,
+) -> Result<Option<Usage>, Box<dyn std::error::Error>> {
+    if stream_enabled {
+        stream(response).await
+    } else {
+        let response_text = response.text().await?;
+        let response_json: NonStreamingResponse = serde_json::from_str(&response_text)?;
+        let response_string = response_json.choices[0]
+            .message
+            .content
+            .as_ref()
+            .expect("No content in response");
+        println!("{}", response_string);
+        Ok(Some(response_json.usage))
+    }
+}
 pub async fn check_models(
     base_url: &str,
     api_key: &str,
@@ -56,25 +126,9 @@ pub async fn check_models(
 
 pub async fn chat(prompt: String, args: Cli) -> Result<(), Box<dyn std::error::Error>> {
     let config: config::Config = config::Config::load()?;
-    let api_key =
-        env::var("ASK_API_KEY").map_err(|_| "ASK_API_KEY environment variable not set")?;
-
-    let model = if args.reasoning != ReasoningEffort::None {
-        config.thinking_model.clone()
-    } else {
-        config.model.clone()
-    };
-
-    let body = RequestBody::builder()
-        .model(model)
-        .messages(vec![Message {
-            role: Some("user".to_string()),
-            content: Some(prompt),
-        }])
-        .stream(config.stream)
-        .reasoning_effort(args.reasoning)
-        .show_reasoning(args.verbose)
-        .build()?;
+    let api_key = load_api_key()?;
+    let model = select_model(&config, &args.reasoning);
+    let body = build_request_body(model, prompt, config.stream, args.reasoning, args.verbose)?;
 
     // dbg the body as a json string if the DEBUG environment variable is set
     if let Ok(debug) = env::var("DEBUG") {
@@ -83,20 +137,7 @@ pub async fn chat(prompt: String, args: Cli) -> Result<(), Box<dyn std::error::E
         }
     }
 
-    let client = Client::new();
-    let endpoint = create_endpoint(&config.legacy_completions, &config.base_url);
-    let response = client
-        .post(&endpoint)
-        .bearer_auth(&api_key)
-        .header("Content-Type", "application/json")
-        .json(&serde_json::json!(body))
-        .send()
-        .await?;
-
-    // Check response code of the API
-    if !response.status().is_success() {
-        return Err(format!("API returned an error: {:#?}", response).into());
-    }
+    let response = build_request(&config, &api_key, body).await?;
 
     // If the DEBUG environment variable is set, print the response
     if let Ok(debug) = env::var("DEBUG") {
@@ -104,21 +145,16 @@ pub async fn chat(prompt: String, args: Cli) -> Result<(), Box<dyn std::error::E
             println!("{:?}", response);
         }
     }
-
-    if config.stream {
-        // If streaming is enabled, handle the stream
-        stream(response).await?;
-    } else {
-        // Otherwise, just print the response
-        let response_text = response.text().await?;
-        let response_json: NonStreamingResponse = serde_json::from_str(&response_text)?;
-        let response_string = response_json.choices[0]
-            .message
-            .content
-            .as_ref()
-            .expect("No content in response");
-        // Print the response content
-        println!("{}", response_string);
+    let usage = handle_response(response, config.stream).await?;
+    if args.verbose {
+        if let Some(usage_info) = usage {
+            println!(
+                "Usage: prompt_tokens: {}, completion_tokens: {}, total_tokens: {}",
+                usage_info.prompt_tokens, usage_info.completion_tokens, usage_info.total_tokens
+            );
+        } else {
+            println!("No usage information available.");
+        }
     }
 
     Ok(())

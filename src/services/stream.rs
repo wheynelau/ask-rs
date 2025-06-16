@@ -1,9 +1,13 @@
 use super::schema::Response;
+use super::schema::Usage;
 use futures_util::StreamExt;
 use std::io::Write;
-pub(super) async fn stream(response: reqwest::Response) -> Result<(), Box<dyn std::error::Error>> {
+pub(super) async fn stream(
+    response: reqwest::Response,
+) -> Result<Option<Usage>, Box<dyn std::error::Error>> {
     let mut stream = response.bytes_stream();
     let mut buffer = Vec::new();
+    let mut usage: Option<Usage> = None;
 
     while let Some(item) = stream.next().await {
         match item {
@@ -30,6 +34,8 @@ pub(super) async fn stream(response: reqwest::Response) -> Result<(), Box<dyn st
                                         // Flush immediately to show the output
                                         std::io::stdout().flush()?;
                                     }
+                                    // Handle the  usage information if needed
+                                    usage = chunk.usage;
                                 }
                                 Err(e) => eprintln!("Error parsing chunk: {}", e),
                             }
@@ -44,5 +50,5 @@ pub(super) async fn stream(response: reqwest::Response) -> Result<(), Box<dyn st
         }
     }
 
-    Ok(())
+    Ok(usage)
 }
