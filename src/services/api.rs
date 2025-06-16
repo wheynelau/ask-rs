@@ -1,9 +1,9 @@
-use std::env;
-
 use reqwest::Client;
+use std::env;
 
 use super::request::{ReasoningEffort, RequestBody};
 use super::schema::{APIResponse, Message, Usage};
+use super::spinner;
 use super::stream::stream;
 use crate::cli::Cli;
 use crate::config::setup as config;
@@ -60,9 +60,16 @@ async fn build_request(
     config: &config::Config,
     api_key: &str,
     body: RequestBody,
+    reasoning: &ReasoningEffort,
 ) -> Result<reqwest::Response, Box<dyn std::error::Error>> {
     let client = Client::new();
     let endpoint = create_endpoint(&config.legacy_completions, &config.base_url);
+    // Spinner setup
+    let spinner = if reasoning == &ReasoningEffort::None {
+        spinner::create_api_spinner()
+    } else {
+        spinner::create_reasoning_spinner()
+    };
     let response = client
         .post(&endpoint)
         .bearer_auth(api_key)
@@ -70,7 +77,7 @@ async fn build_request(
         .json(&serde_json::json!(body))
         .send()
         .await?;
-
+    spinner.finish();
     // Check response code of the API
     if !response.status().is_success() {
         return Err(format!("API returned an error: {:#?}", response).into());
@@ -137,7 +144,7 @@ pub async fn chat(prompt: String, args: Cli) -> Result<(), Box<dyn std::error::E
         }
     }
 
-    let response = build_request(&config, &api_key, body).await?;
+    let response = build_request(&config, &api_key, body, &args.reasoning).await?;
 
     // If the DEBUG environment variable is set, print the response
     if let Ok(debug) = env::var("DEBUG") {
