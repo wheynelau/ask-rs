@@ -149,7 +149,7 @@ pub async fn chat(prompt: String, args: Cli) -> Result<(), Box<dyn std::error::E
     if args.verbose {
         if let Some(usage_info) = usage {
             println!(
-                "Usage: prompt_tokens: {}, completion_tokens: {}, total_tokens: {}",
+                "\n\nUsage: prompt_tokens: {}, completion_tokens: {}, total_tokens: {}",
                 usage_info.prompt_tokens, usage_info.completion_tokens, usage_info.total_tokens
             );
         } else {

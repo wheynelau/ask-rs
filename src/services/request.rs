@@ -7,7 +7,13 @@ pub struct RequestBody {
     model: String,
     messages: Vec<Message>,
     stream: bool,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stream_options: Option<serde_json::Value>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     reasoning_effort: Option<String>,
+
     extra_body: serde_json::Value,
 }
 impl RequestBody {
@@ -80,6 +86,12 @@ impl RequestBodyBuilder {
         let stream = builder.stream.unwrap_or(false); // Default to false if not set
         let reasoning_effort = builder.reasoning_effort;
 
+        let stream_options = if stream {
+            Some(serde_json::json!({"include_usage": true}))
+        } else {
+            None
+        };
+
         let extra_body = builder
             .extra_body
             .unwrap_or_else(|| serde_json::Value::Object(serde_json::Map::new())); // Default to empty object
@@ -88,6 +100,7 @@ impl RequestBodyBuilder {
             model,
             messages,
             stream,
+            stream_options,
             reasoning_effort,
             extra_body,
         })
