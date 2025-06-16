@@ -59,7 +59,8 @@ pub async fn chat(
     reasoning: ReasoningEffort,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let config: config::Config = config::Config::load()?;
-    let api_key = env::var("ASK_API_KEY")?;
+    let api_key =
+        env::var("ASK_API_KEY").map_err(|_| "ASK_API_KEY environment variable not set")?;
 
     let model = if reasoning != ReasoningEffort::None {
         config.thinking_model.clone()
