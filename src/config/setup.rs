@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::env;
 use std::path::PathBuf;
 
-use crate::services::api;
+use crate::services::api::check_models;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Config {
@@ -138,7 +138,7 @@ async fn validate_model_if_requested(
 
     if !skip_validate {
         let api_key = env::var("ASK_API_KEY")?;
-        api::check_models(base_url, &api_key, model).await?;
+        check_models(base_url, &api_key, model).await?;
     }
 
     Ok(())

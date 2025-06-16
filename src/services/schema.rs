@@ -18,15 +18,15 @@ pub struct NonStreamingResponse {
 }
 
 #[derive(Debug, Deserialize)]
-struct NonStreamingChoice {
+pub struct NonStreamingChoice {
     pub message: Message,
 }
 
 #[derive(Debug, Deserialize)]
-struct Usage {
-    pub prompt_tokens: u64,
-    pub completion_tokens: u64,
-    pub total_tokens: u64,
+pub struct Usage {
+    pub prompt_tokens: u32,
+    pub completion_tokens: u32,
+    pub total_tokens: u32,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -92,7 +92,8 @@ impl RequestBodyBuilder {
         self.reasoning_effort = reasoning_effort.to_option_string();
         self
     }
-
+    // This is not used yet, just a placeholder for future use
+    #[allow(dead_code)]
     pub fn extra_body(mut self, extra_body: serde_json::Value) -> Self {
         self.extra_body = Some(extra_body);
         self

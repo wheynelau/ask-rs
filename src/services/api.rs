@@ -1,5 +1,3 @@
-/// Handles the API calling
-use serde_json::{self, Value};
 use std::env;
 
 use reqwest::Client;
@@ -74,6 +72,7 @@ pub async fn chat(prompt: String, args: Cli) -> Result<(), Box<dyn std::error::E
         }])
         .stream(config.stream)
         .reasoning_effort(args.reasoning)
+        .show_reasoning(args.verbose)
         .build()?;
 
     // dbg the body as a json string if the DEBUG environment variable is set
@@ -112,7 +111,11 @@ pub async fn chat(prompt: String, args: Cli) -> Result<(), Box<dyn std::error::E
         // Otherwise, just print the response
         let response_text = response.text().await?;
         let response_json: NonStreamingResponse = serde_json::from_str(&response_text)?;
-        let response_string = response_json.choices[0].message.content.as_ref().expect("No content in response");
+        let response_string = response_json.choices[0]
+            .message
+            .content
+            .as_ref()
+            .expect("No content in response");
         // Print the response content
         println!("{}", response_string);
     }

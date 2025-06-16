@@ -21,5 +21,14 @@ pub struct Cli {
     )]
     pub reasoning: ReasoningEffort,
 
+    // Verbosity, shows reasoning and tokens
+    #[arg(
+        short = 'v',
+        long,
+        help = "Show reasoning and token usage",
+        long_help = "Enable verbose output to show reasoning steps and token usage."
+    )]
+    pub verbose: bool,
+
     pub input: Option<String>,
 }
