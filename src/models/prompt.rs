@@ -14,7 +14,7 @@ pub fn format_prompt(
     prompt.push_str(system_prompt);
     prompt.push_str("\n\n");
 
-    // STDIN section if exists
+    // if stdin  is provided, add it to the prompt
     if let Some(stdin) = stdin_content {
         if !stdin.trim().is_empty() {
             prompt.push_str("# STDIN\n");
@@ -23,7 +23,7 @@ pub fn format_prompt(
         }
     }
 
-    // Question section
+    // finally add the user question
     prompt.push_str("# Question\n");
     prompt.push_str(user_question);
 

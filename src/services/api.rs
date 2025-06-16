@@ -1,13 +1,13 @@
 /// Handles the API calling
-use serde_json;
+use serde_json::{self, json};
 use std::env;
 
 use futures_util::StreamExt;
 use reqwest::Client;
 use std::io::Write;
 
-use crate::config;
-use crate::response::{self, APIResponse, Message, RequestBody};
+use crate::models::config;
+use crate::services::schema::{APIResponse, Message, ReasoningEffort, RequestBody, Response};
 
 fn check_exists(model: &str, models: &APIResponse) -> bool {
     models.data.iter().any(|m| m.id == model)
@@ -54,24 +54,46 @@ pub async fn check_models(
     Ok(())
 }
 
-pub async fn chat(prompt: String) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn chat(
+    prompt: String,
+    reasoning: ReasoningEffort,
+) -> Result<(), Box<dyn std::error::Error>> {
     let config: config::Config = config::Config::load()?;
     let api_key = env::var("ASK_API_KEY")?;
 
+    let model = if reasoning != ReasoningEffort::None {
+        config.thinking_model.clone()
+    } else {
+        config.model.clone()
+    };
+    // hardcode for testing
+
+    let extra_body = json!({
+        "google": {
+            "thinking_config": {
+                "thinkingBudget" : 1024,
+                "include_thoughts": true
+            }
+        }
+    });
+
     let body = RequestBody::new(
-        config.model,
-        vec![
-            Message {
-                role: Some(config.system_role.clone()),
-                content: Some(config.system_prompt.clone()),
-            },
-            Message {
-                role: Some("user".to_string()),
-                content: Some(prompt),
-            },
-        ],
+        model,
+        vec![Message {
+            role: Some("user".to_string()),
+            content: Some(prompt),
+        }],
         true,
+        None,
+        extra_body,
     );
+
+    // dbg the body as a json string if the DEBUG environment variable is set
+    if let Ok(debug) = env::var("DEBUG") {
+        if debug == "1" || debug == "true" {
+            println!("Request Body: {:#?}", body);
+        }
+    }
 
     let client = Client::new();
     let endpoint = create_endpoint(&config.legacy_completions, &config.base_url);
@@ -117,7 +139,7 @@ pub async fn chat(prompt: String) -> Result<(), Box<dyn std::error::Error>> {
                             if data == "[DONE]" {
                                 break;
                             }
-                            match serde_json::from_str::<response::Response>(&data) {
+                            match serde_json::from_str::<Response>(&data) {
                                 Ok(chunk) => {
                                     if let Some(content) = chunk.choices[0].delta.content.as_ref() {
                                         print!("{}", content);
@@ -144,7 +166,8 @@ pub async fn chat(prompt: String) -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::env;
+    use crate::services::schema::{APIResponse, Model};
+    use std::env; // Import Model and APIResponse for tests
 
     #[tokio::test]
     #[ignore = "requires real API key and network"]
@@ -159,13 +182,13 @@ mod tests {
     async fn check_invalid_model() {
         let api_response = APIResponse {
             data: vec![
-                response::Model {
+                Model {
                     id: "model-id-0".to_string(),
                 },
-                response::Model {
+                Model {
                     id: "model-id-1".to_string(),
                 },
-                response::Model {
+                Model {
                     id: "model-id-2".to_string(),
                 },
             ],
