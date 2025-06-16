@@ -1,4 +1,3 @@
-use super::additional_config::gemini_config;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize)]
@@ -29,7 +28,7 @@ pub struct Usage {
     pub total_tokens: u32,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Message {
     pub role: Option<String>,
     pub content: Option<String>,
@@ -43,132 +42,4 @@ pub struct Model {
 #[derive(Deserialize)]
 pub struct APIResponse {
     pub data: Vec<Model>,
-}
-#[derive(Serialize, Debug)]
-pub struct RequestBody {
-    model: String,
-    messages: Vec<Message>,
-    stream: bool,
-    reasoning_effort: Option<String>,
-    extra_body: serde_json::Value,
-}
-impl RequestBody {
-    pub fn builder() -> RequestBodyBuilder {
-        RequestBodyBuilder::new()
-    }
-}
-
-#[derive(Default)]
-pub struct RequestBodyBuilder {
-    pub(super) model: Option<String>,
-    pub(super) messages: Option<Vec<Message>>,
-    pub(super) stream: Option<bool>,
-    pub(super) reasoning_effort: Option<String>,
-    pub(super) show_reasoning: bool,
-    pub(super) extra_body: Option<serde_json::Value>,
-}
-
-impl RequestBodyBuilder {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn model(mut self, model: String) -> Self {
-        self.model = Some(model);
-        self
-    }
-
-    pub fn messages(mut self, messages: Vec<Message>) -> Self {
-        self.messages = Some(messages);
-        self
-    }
-
-    pub fn stream(mut self, stream: bool) -> Self {
-        self.stream = Some(stream);
-        self
-    }
-
-    pub fn reasoning_effort(mut self, reasoning_effort: ReasoningEffort) -> Self {
-        self.reasoning_effort = reasoning_effort.to_option_string();
-        self
-    }
-    // This is not used yet, just a placeholder for future use
-    #[allow(dead_code)]
-    pub fn extra_body(mut self, extra_body: serde_json::Value) -> Self {
-        self.extra_body = Some(extra_body);
-        self
-    }
-
-    pub fn show_reasoning(mut self, show_reasoning: bool) -> Self {
-        self.show_reasoning = show_reasoning;
-        self
-    }
-
-    fn validate(mut self) -> Self {
-        // This handles additional configurations or validations if needed
-        if let Some(model) = &self.model {
-            if model.starts_with("gemini") {
-                // gemini cannot accept both reasoning effort and extra body
-                self = gemini_config(self);
-            }
-        }
-        self
-    }
-
-    pub fn build(self) -> Result<RequestBody, String> {
-        let builder = self.validate();
-        let model = builder.model.ok_or("model must be set")?;
-        let messages = builder.messages.ok_or("messages must be set")?;
-        let stream = builder.stream.unwrap_or(false); // Default to false if not set
-        let reasoning_effort = builder.reasoning_effort;
-
-        let extra_body = builder
-            .extra_body
-            .unwrap_or_else(|| serde_json::Value::Object(serde_json::Map::new())); // Default to empty object
-
-        Ok(RequestBody {
-            model,
-            messages,
-            stream,
-            reasoning_effort,
-            extra_body,
-        })
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum ReasoningEffort {
-    /// No reasoning (0)
-    None = 0,
-    /// Low reasoning effort (1)
-    Low = 1,
-    /// Medium reasoning effort (2)
-    Medium = 2,
-    /// High reasoning effort (3)
-    High = 3,
-}
-
-impl std::str::FromStr for ReasoningEffort {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "0" => Ok(ReasoningEffort::None),
-            "1" => Ok(ReasoningEffort::Low),
-            "2" => Ok(ReasoningEffort::Medium),
-            "3" => Ok(ReasoningEffort::High),
-            _ => Err(format!("Invalid reasoning effort: {}", s)),
-        }
-    }
-}
-
-impl ReasoningEffort {
-    pub fn to_option_string(&self) -> Option<String> {
-        match self {
-            ReasoningEffort::None => None,
-            ReasoningEffort::Low => Some("low".to_string()),
-            ReasoningEffort::Medium => Some("medium".to_string()),
-            ReasoningEffort::High => Some("high".to_string()),
-        }
-    }
 }

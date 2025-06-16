@@ -1,12 +1,12 @@
-use super::schema::RequestBodyBuilder;
+use super::request::RequestBodyBuilder;
 use serde_json::json;
 
 pub(super) fn gemini_config(mut builder: RequestBodyBuilder) -> RequestBodyBuilder {
     if builder.show_reasoning {
-        let thinking_budget = match builder.reasoning_effort.as_deref() {
-            Some("high") => 1024,
-            Some("medium") => 512,
-            Some("low") => 256,
+        let thinking_budget: u32 = match builder.reasoning_effort.as_deref() {
+            Some("high") => 24576,
+            Some("medium") => 8192,
+            Some("low") => 512,
             _ => 0,
         };
         builder.reasoning_effort = None; // Reset reasoning effort for gemini

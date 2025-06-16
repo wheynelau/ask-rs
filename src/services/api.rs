@@ -2,7 +2,8 @@ use std::env;
 
 use reqwest::Client;
 
-use super::schema::{APIResponse, Message, ReasoningEffort, RequestBody};
+use super::request::{ReasoningEffort, RequestBody};
+use super::schema::{APIResponse, Message};
 use super::stream::stream;
 use crate::cli::Cli;
 use crate::config::setup as config;

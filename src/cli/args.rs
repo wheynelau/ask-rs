@@ -1,4 +1,4 @@
-use crate::services::schema::ReasoningEffort;
+use crate::services::request::ReasoningEffort;
 use clap::Parser;
 
 #[derive(Parser, Debug)]
