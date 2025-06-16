@@ -1,13 +1,14 @@
 /// Handles the API calling
-use serde_json::{self};
+use serde_json::{self, Value};
 use std::env;
 
-use futures_util::StreamExt;
 use reqwest::Client;
-use std::io::Write;
 
+use super::schema::{APIResponse, Message, ReasoningEffort, RequestBody};
+use super::stream::stream;
+use crate::cli::Cli;
 use crate::config::setup as config;
-use crate::services::schema::{APIResponse, Message, ReasoningEffort, RequestBody, Response};
+use crate::services::schema::NonStreamingResponse;
 
 fn check_exists(model: &str, models: &APIResponse) -> bool {
     models.data.iter().any(|m| m.id == model)
@@ -54,15 +55,12 @@ pub async fn check_models(
     Ok(())
 }
 
-pub async fn chat(
-    prompt: String,
-    reasoning: ReasoningEffort,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn chat(prompt: String, args: Cli) -> Result<(), Box<dyn std::error::Error>> {
     let config: config::Config = config::Config::load()?;
     let api_key =
         env::var("ASK_API_KEY").map_err(|_| "ASK_API_KEY environment variable not set")?;
 
-    let model = if reasoning != ReasoningEffort::None {
+    let model = if args.reasoning != ReasoningEffort::None {
         config.thinking_model.clone()
     } else {
         config.model.clone()
@@ -74,8 +72,8 @@ pub async fn chat(
             role: Some("user".to_string()),
             content: Some(prompt),
         }])
-        .stream(true)
-        .reasoning_effort(reasoning)
+        .stream(config.stream)
+        .reasoning_effort(args.reasoning)
         .build()?;
 
     // dbg the body as a json string if the DEBUG environment variable is set
@@ -107,47 +105,16 @@ pub async fn chat(
         }
     }
 
-    // Process the streamed response asynchronously
-    let mut stream = response.bytes_stream();
-    let mut buffer = Vec::new();
-
-    while let Some(item) = stream.next().await {
-        match item {
-            Ok(chunk) => {
-                buffer.extend_from_slice(&chunk);
-
-                // Convert buffer to string and process lines
-                if let Ok(text) = String::from_utf8(buffer.clone()) {
-                    if text.contains("[DONE]") {
-                        break;
-                    }
-
-                    // Process each line in the text
-                    for line in text.lines() {
-                        if line.starts_with("data: ") {
-                            let data = line.replace("data: ", "");
-                            if data == "[DONE]" {
-                                break;
-                            }
-                            match serde_json::from_str::<Response>(&data) {
-                                Ok(chunk) => {
-                                    if let Some(content) = chunk.choices[0].delta.content.as_ref() {
-                                        print!("{}", content);
-                                        // Flush immediately to show the output
-                                        std::io::stdout().flush()?;
-                                    }
-                                }
-                                Err(e) => eprintln!("Error parsing chunk: {}", e),
-                            }
-                        }
-                    }
-
-                    // Clear buffer after processing
-                    buffer.clear();
-                }
-            }
-            Err(e) => eprintln!("Stream error: {}", e),
-        }
+    if config.stream {
+        // If streaming is enabled, handle the stream
+        stream(response).await?;
+    } else {
+        // Otherwise, just print the response
+        let response_text = response.text().await?;
+        let response_json: NonStreamingResponse = serde_json::from_str(&response_text)?;
+        let response_string = response_json.choices[0].message.content.as_ref().expect("No content in response");
+        // Print the response content
+        println!("{}", response_string);
     }
 
     Ok(())

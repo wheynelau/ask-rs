@@ -10,7 +10,7 @@ use config::setup::Config;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args = cli::args::Cli::parse();
+    let args = cli::Cli::parse();
 
     if args.configure {
         // This is configuration mode
@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             None
         };
 
-        let user_question = match args.input {
+        let user_question = match &args.input {
             Some(input) => input,
             None => {
                 eprintln!("Please enter your question.");
@@ -43,10 +43,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let prompt = models::prompt::format_prompt(
             &config.system_prompt,
             stdin_content.as_deref(),
-            &user_question,
+            user_question,
         );
 
-        services::api::chat(prompt, args.reasoning).await?;
+        services::api::chat(prompt, args).await?;
     }
 
     Ok(())

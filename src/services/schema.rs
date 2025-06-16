@@ -10,6 +10,25 @@ pub struct Choice {
     pub delta: Message,
 }
 
+//TODO: Refactor the non streaming and streaming responses so they can be shared
+#[derive(Debug, Deserialize)]
+pub struct NonStreamingResponse {
+    pub choices: Vec<NonStreamingChoice>,
+    pub usage: Usage,
+}
+
+#[derive(Debug, Deserialize)]
+struct NonStreamingChoice {
+    pub message: Message,
+}
+
+#[derive(Debug, Deserialize)]
+struct Usage {
+    pub prompt_tokens: u64,
+    pub completion_tokens: u64,
+    pub total_tokens: u64,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Message {
     pub role: Option<String>,

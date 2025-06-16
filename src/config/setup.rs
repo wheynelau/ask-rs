@@ -24,6 +24,9 @@ pub struct Config {
 
     #[serde(default = "Config::default_system_role")]
     pub system_role: String,
+
+    #[serde(default = "Config::default_stream")]
+    pub stream: bool,
 }
 
 impl Config {
@@ -41,11 +44,14 @@ impl Config {
     }
 
     fn default_system_prompt() -> String {
-        "You are a helpful assistant, answer concisely. The user will be asking questions via a terminal, so keep the answers brief.".to_string()
+        "The user will be asking questions via a terminal, so there is no need for markdown formatting.".to_string()
     }
 
     fn default_system_role() -> String {
         "system".to_string()
+    }
+    fn default_stream() -> bool {
+        true
     }
 
     pub fn load() -> Result<Self, Box<dyn std::error::Error>> {
@@ -72,6 +78,7 @@ impl Default for Config {
             thinking_model: Self::default_thinking_model(),
             system_prompt: Self::default_system_prompt(),
             system_role: Self::default_system_role(),
+            stream: Self::default_stream(),
         }
     }
 }
@@ -161,6 +168,7 @@ pub async fn configure() -> Result<(), Box<dyn std::error::Error>> {
         "Do you want to use legacy completions?",
         current_config.legacy_completions,
     )?;
+    let stream = prompt_bool("Do you want to enable streaming?", current_config.stream)?;
 
     validate_model_if_requested(&base_url, &model).await?;
 
@@ -171,6 +179,7 @@ pub async fn configure() -> Result<(), Box<dyn std::error::Error>> {
         thinking_model,
         system_prompt,
         system_role,
+        stream,
     };
 
     new_config.save()?;
