@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize)]
 pub struct Response {
     pub choices: Vec<Choice>,
+    pub usage: Option<Usage>,
 }
 #[derive(Debug, Deserialize)]
 pub struct Choice {
