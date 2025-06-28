@@ -1,5 +1,7 @@
 use reqwest::Client;
 use std::env;
+use termimad::crossterm::style::Color::*;
+use termimad::*;
 
 use super::request::{ReasoningEffort, RequestBody};
 use super::schema::{APIResponse, Message, Usage};
@@ -89,8 +91,14 @@ async fn handle_response(
     response: reqwest::Response,
     stream_enabled: bool,
 ) -> Result<Option<Usage>, Box<dyn std::error::Error>> {
+    let mut skin = MadSkin::default();
+    skin.set_headers_fg(rgb(255, 187, 0));
+    skin.bold.set_fg(Yellow);
+    skin.italic.set_fg(Magenta);
+    skin.bullet = StyledChar::from_fg_char(Yellow, '⟡');
+    skin.quote_mark.set_fg(Yellow);
     if stream_enabled {
-        stream(response).await
+        stream(response, &skin).await
     } else {
         let response_text = response.text().await?;
         let response_json: NonStreamingResponse = serde_json::from_str(&response_text)?;
@@ -99,7 +107,7 @@ async fn handle_response(
             .content
             .as_ref()
             .expect("No content in response");
-        println!("{}", response_string);
+        println!("{}", skin.inline(response_string));
         Ok(Some(response_json.usage))
     }
 }
